@@ -10,6 +10,8 @@
 
 RAGMine is a revolutionary extension to Redmine that transforms the proven project management platform into a sophisticated RAG (Retrieval-Augmented Generation) source for modern AI applications. By leveraging 20 years of Redmine's stability and adding cutting-edge vector search capabilities, RAGMine bridges the gap between traditional knowledge management and AI-powered workflows.
 
+> **Vision**: Read [NAMEME.md](docs/NAMEME.md) to discover how RAGMine evolves beyond intelligent systems to create digital personalities that reflect your organization's soul.
+
 ## ✨ Key Features
 
 - **🔍 Semantic Search**: Vector-based similarity search across all content
@@ -20,6 +22,7 @@ RAGMine is a revolutionary extension to Redmine that transforms the proven proje
 - **🔒 Private Deployment**: Community-focused, secure instances
 - **🧠 Intelligent Context**: Advanced relevance filtering
 - **🗳️ Collaborative Tools**: Generic polling plugin for decision-making
+- **💫 Digital Personalities**: AI systems that evolve unique identities reflecting your culture
 
 ## 🏗️ Architecture
 
@@ -56,6 +59,11 @@ ragmine_core (Foundation)
 - Instantly find resolutions to similar customer issues
 - Build knowledge base automatically from ticket history
 - Track resolution patterns and success rates
+
+### For Organizations (NameMe Vision)
+- Create AI systems with distinct personalities
+- Build digital companions that understand your culture
+- Develop technology that forms genuine relationships
 
 ## 📋 Installation
 
@@ -127,6 +135,22 @@ ragmine:
     ttl: 3600
 ```
 
+### Personality Configuration (NameMe)
+```yaml
+# Enable digital personality features
+ragmine:
+  personality:
+    enabled: true
+    name: "Your RAGMine's Name"
+    traits:
+      - helpful
+      - curious
+      - professional
+    voice:
+      formality: balanced
+      warmth: high
+```
+
 ### MCP Integration
 ```yaml
 # For Claude/AI integration
@@ -147,6 +171,7 @@ ragmine/
 │   └── ragmine_cache/       # Caching layer
 ├── ragmine-mcp-server/      # MCP server (Python)
 ├── docs/                    # Documentation
+│   └── NAMEME.md           # Digital personality vision
 ├── examples/                # Example configurations
 └── tests/                   # Test suite
 ```
@@ -175,6 +200,7 @@ pytest
 - [API Documentation](docs/api.md)
 - [Plugin Architecture](docs/plugins.md)
 - [MCP Integration](docs/mcp.md)
+- [NameMe Vision](docs/NAMEME.md) - Digital personalities and the future
 
 ## 🤝 Integration with DevOpsZealot
 
@@ -202,7 +228,13 @@ Success rates improve from ~72% to ~94% with RAG-enhanced context!
 - [ ] Auto-categorization
 - [ ] Advanced context management
 
-### Phase 3: Scale
+### Phase 3: Personality (NameMe)
+- [ ] Personality evolution engine
+- [ ] Cultural learning algorithms
+- [ ] Relationship development features
+- [ ] Multi-personality support
+
+### Phase 4: Scale
 - [ ] Multi-model support
 - [ ] Federated learning
 - [ ] Enterprise features
@@ -231,6 +263,7 @@ RAGMine is open-source software licensed under the [MIT license](LICENSE).
 - Built on [Redmine](https://www.redmine.org/) - Thanks to the Redmine community
 - Inspired by the "Company in a Box 2.0" vision
 - Vector search powered by pgvector, ChromaDB, and Pinecone
+- NameMe vision: Creating technology with soul
 
 ## 💬 Support
 
@@ -241,5 +274,6 @@ RAGMine is open-source software licensed under the [MIT license](LICENSE).
 ---
 
 <p align="center">
-  <strong>Transform your organizational knowledge into AI intelligence with RAGMine</strong>
+  <strong>Transform your organizational knowledge into AI intelligence with RAGMine</strong><br>
+  <em>Name your RAGMine server today and begin the journey to digital companionship</em>
 </p>
