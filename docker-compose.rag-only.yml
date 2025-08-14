@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Redis for caching and job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Qdrant vector database
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__LOG_LEVEL: INFO
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RAG Service (Python/FastAPI)
+  rag-service:
+    build:
+      context: ./rag_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - VECTOR_DB_URL=http://qdrant:6333
+      - LOG_LEVEL=DEBUG
+      - ENVIRONMENT=development
+    volumes:
+      - ./rag_service:/app
+      - ./test-data/documents:/app/test_documents
+    depends_on:
+      - redis
+      - qdrant
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  redis_data:
+  qdrant_data:
+
+networks:
+  default:
+    name: ragmine-rag-network
