@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Redmica
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: redmica
+      POSTGRES_USER: redmica
+      POSTGRES_PASSWORD: redmica_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./test-data/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redmica"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Qdrant vector database
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__LOG_LEVEL: INFO
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RAG Service (Python/FastAPI)
+  rag-service:
+    build:
+      context: ./rag_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - VECTOR_DB_URL=http://qdrant:6333
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LOG_LEVEL=DEBUG
+      - ENVIRONMENT=development
+    volumes:
+      - ./rag_service:/app
+      - ./test-data/documents:/app/test_documents
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Redmica with RAGmine plugin
+  redmica:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.redmica
+    ports:
+      - "3000:3000"
+    environment:
+      RAILS_ENV: development
+      REDMINE_DB_ADAPTER: postgresql
+      REDMINE_DB_HOST: postgres
+      REDMINE_DB_PORT: 5432
+      REDMINE_DB_DATABASE: redmica
+      REDMINE_DB_USERNAME: redmica
+      REDMINE_DB_PASSWORD: redmica_password
+      # RAGmine plugin settings
+      RAGMINE_SERVICE_URL: http://rag-service:8000
+      RAGMINE_API_KEY: dev-test-key-12345
+      RAGMINE_TIMEOUT: 30
+      RAGMINE_ENABLE_CACHE: true
+      RAGMINE_CACHE_TTL: 300
+      RAGMINE_FALLBACK_MODE: basic
+      RAGMINE_MAX_RESULTS: 20
+      RAGMINE_ENABLE_ANALYTICS: true
+      # Redis for Sidekiq
+      REDIS_URL: redis://redis:6379/1
+    volumes:
+      - redmica_files:/usr/src/redmine/files
+      - redmica_plugins:/usr/src/redmine/plugins
+      - ./plugins:/usr/src/redmine/plugins/ragmine
+      - ./test-data/attachments:/usr/src/redmine/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rag-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Sidekiq worker for background jobs
+  sidekiq:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.redmica
+    command: bundle exec sidekiq
+    environment:
+      RAILS_ENV: development
+      REDMINE_DB_ADAPTER: postgresql
+      REDMINE_DB_HOST: postgres
+      REDMINE_DB_PORT: 5432
+      REDMINE_DB_DATABASE: redmica
+      REDMINE_DB_USERNAME: redmica
+      REDMINE_DB_PASSWORD: redmica_password
+      REDIS_URL: redis://redis:6379/1
+      RAGMINE_SERVICE_URL: http://rag-service:8000
+      RAGMINE_API_KEY: dev-test-key-12345
+    volumes:
+      - ./plugins:/usr/src/redmine/plugins/ragmine
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rag-service:
+        condition: service_healthy
+
+  # Test data loader
+  test-data-loader:
+    build:
+      context: ./test-data
+      dockerfile: Dockerfile
+    environment:
+      REDMICA_URL: http://redmica:3000
+      REDMICA_API_KEY: ${REDMICA_API_KEY:-admin_api_key}
+      RAG_SERVICE_URL: http://rag-service:8000
+      RAG_API_KEY: dev-test-key-12345
+    volumes:
+      - ./test-data:/app/data
+    depends_on:
+      redmica:
+        condition: service_healthy
+      rag-service:
+        condition: service_healthy
+    profiles:
+      - testing
+
+  # Integration test runner
+  integration-tests:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    environment:
+      REDMICA_URL: http://redmica:3000
+      RAG_SERVICE_URL: http://rag-service:8000
+      TEST_DATA_PATH: /app/test-data
+    volumes:
+      - ./tests:/app/tests
+      - ./test-data:/app/test-data
+    depends_on:
+      redmica:
+        condition: service_healthy
+      rag-service:
+        condition: service_healthy
+    profiles:
+      - testing
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  redmica_files:
+  redmica_plugins:
+
+networks:
+  default:
+    name: ragmine-network

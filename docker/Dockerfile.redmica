@@ -1,0 +1,34 @@
+FROM redmica/redmica:latest
+
+# Install additional dependencies for RAGmine plugin
+USER root
+
+# Install required gems and dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to redmine user
+USER redmine
+
+# Copy plugin files
+COPY --chown=redmine:redmine plugins/ /usr/src/redmine/plugins/ragmine/
+
+# Install plugin dependencies
+WORKDIR /usr/src/redmine
+RUN bundle install --without development test
+
+# Install RAGmine plugin gems
+RUN cd plugins/ragmine && \
+    if [ -f Gemfile ]; then bundle install; fi
+
+# Setup plugin database migrations
+RUN bundle exec rake redmine:plugins:migrate RAILS_ENV=production || true
+
+# Expose port
+EXPOSE 3000
+
+# Start Redmine
+CMD ["rails", "server", "-b", "0.0.0.0"]
