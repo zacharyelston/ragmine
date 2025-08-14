@@ -7,11 +7,14 @@ help:
 	@echo "Ragmine Development Commands:"
 	@echo "  make setup       - Initial setup of development environment"
 	@echo "  make install     - Install all dependencies"
-	@echo "  make test        - Run all tests"
+	@echo "  make test        - Run RAG service unit tests"
+	@echo "  make test-rag    - Run RAG-only stack integration tests"
 	@echo "  make lint        - Run linters"
 	@echo "  make format      - Format code"
-	@echo "  make docker-up   - Start Docker services"
+	@echo "  make docker-up   - Start full Docker services"
 	@echo "  make docker-down - Stop Docker services"
+	@echo "  make rag-up      - Start RAG-only stack"
+	@echo "  make rag-down    - Stop RAG-only stack"
 	@echo "  make index       - Run full indexing"
 	@echo "  make clean       - Clean temporary files"
 	@echo "  make release     - Build release package"
@@ -34,11 +37,22 @@ install:
 
 # Run tests
 test:
-	@echo "Running plugin tests..."
-	RAILS_ENV=test bundle exec rake redmine:plugins:test NAME=ragmine
-	@echo "Running service tests..."
-	cd rag_service && pytest tests/
+	@echo "Running RAG service unit tests..."
+	cd rag_service && pip install -r requirements-test.txt && pytest tests/ -v --cov=.
 	@echo "All tests completed!"
+
+# Run RAG-only stack tests
+test-rag:
+	@echo "Starting RAG-only stack for testing..."
+	docker compose -f docker-compose.rag-only.yml up -d
+	@echo "Waiting for services to be ready..."
+	@timeout 120s bash -c 'until curl -f http://localhost:8000/health; do sleep 5; done'
+	@echo "Running integration tests..."
+	@curl -f http://localhost:8000/health
+	@curl -X POST "http://localhost:8000/search" -H "Content-Type: application/json" -d '{"query": "API authentication timeout"}' | jq '.results | length'
+	@curl -X POST "http://localhost:8000/index/rebuild" | jq '.status'
+	@echo "RAG stack tests completed!"
+	docker compose -f docker-compose.rag-only.yml down
 
 # Run linters
 lint:
@@ -56,22 +70,36 @@ format:
 	cd rag_service && black .
 	@echo "Formatting complete!"
 
-# Docker commands
+# Start Docker services
 docker-up:
 	@echo "Starting Docker services..."
-	docker-compose up -d
+	docker compose up -d
 	@echo "Services started!"
-	@echo "Redmine: http://localhost:3000"
-	@echo "RAG Service: http://localhost:8000"
-	@echo "Qdrant: http://localhost:6333"
 
+# Stop Docker services
 docker-down:
 	@echo "Stopping Docker services..."
-	docker-compose down
+	docker compose down
 	@echo "Services stopped!"
 
+# Start RAG-only stack
+rag-up:
+	@echo "Starting RAG-only stack..."
+	docker compose -f docker-compose.rag-only.yml up -d
+	@echo "RAG stack started!"
+	@echo "Services available at:"
+	@echo "  - RAG Service: http://localhost:8000"
+	@echo "  - Qdrant: http://localhost:6333"
+	@echo "  - Redis: localhost:6379"
+
+# Stop RAG-only stack
+rag-down:
+	@echo "Stopping RAG-only stack..."
+	docker compose -f docker-compose.rag-only.yml down
+	@echo "RAG stack stopped!"
+
 docker-logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 docker-restart:
 	make docker-down

@@ -1,0 +1,251 @@
+name: RAGmine CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  # Lint and code quality checks
+  lint:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          cd rag_service
+          pip install -r requirements.txt
+          pip install black flake8 isort mypy
+
+      - name: Run Black (Python formatter)
+        run: |
+          cd rag_service
+          black --check --diff .
+
+      - name: Run isort (import sorting)
+        run: |
+          cd rag_service
+          isort --check-only --diff .
+
+      - name: Run Flake8 (linting)
+        run: |
+          cd rag_service
+          flake8 . --max-line-length=88 --extend-ignore=E203,W503
+
+      - name: Run MyPy (type checking)
+        run: |
+          cd rag_service
+          mypy . --ignore-missing-imports
+
+  # Unit tests for RAG service
+  test-rag-service:
+    name: RAG Service Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd rag_service
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run unit tests
+        run: |
+          cd rag_service
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./rag_service/coverage.xml
+          flags: rag-service
+          name: rag-service-coverage
+
+  # Integration tests with Docker Compose
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [lint, test-rag-service]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start RAG-only stack
+        run: |
+          docker compose -f docker-compose.rag-only.yml up -d
+          sleep 30  # Wait for services to be ready
+
+      - name: Wait for services to be healthy
+        run: |
+          timeout 120s bash -c 'until curl -f http://localhost:8000/health; do sleep 5; done'
+          timeout 60s bash -c 'until curl -f http://localhost:6333/; do sleep 5; done'
+          timeout 60s bash -c 'until docker compose -f docker-compose.rag-only.yml exec -T redis redis-cli ping | grep PONG; do sleep 5; done'
+
+      - name: Run integration tests
+        run: |
+          # Test RAG service health
+          curl -f http://localhost:8000/health
+          
+          # Test search functionality
+          curl -X POST "http://localhost:8000/search" \
+            -H "Content-Type: application/json" \
+            -d '{"query": "API authentication timeout", "max_results": 5}' \
+            | jq '.results | length'
+          
+          # Test index rebuild
+          curl -X POST "http://localhost:8000/index/rebuild" | jq '.status'
+
+      - name: Check service logs
+        if: failure()
+        run: |
+          docker compose -f docker-compose.rag-only.yml logs
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f docker-compose.rag-only.yml down -v
+
+  # Security scanning
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Build and test Docker images
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [test-rag-service, test-integration]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build RAG Service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./rag_service
+          file: ./rag_service/Dockerfile
+          push: false
+          tags: ragmine/rag-service:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Redmica image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile.redmica
+          push: false
+          tags: ragmine/redmica:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Performance benchmarks
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start RAG-only stack
+        run: |
+          docker compose -f docker-compose.rag-only.yml up -d
+          sleep 30
+
+      - name: Install Apache Bench
+        run: sudo apt-get update && sudo apt-get install -y apache2-utils
+
+      - name: Run performance benchmarks
+        run: |
+          # Warm up
+          curl -X POST "http://localhost:8000/search" \
+            -H "Content-Type: application/json" \
+            -d '{"query": "test", "max_results": 5}'
+          
+          # Benchmark search endpoint
+          ab -n 100 -c 10 -p benchmark_payload.json -T application/json \
+            http://localhost:8000/search > benchmark_results.txt
+          
+          cat benchmark_results.txt
+
+      - name: Create benchmark payload
+        run: |
+          echo '{"query": "API authentication timeout", "max_results": 5}' > benchmark_payload.json
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark_results.txt
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f docker-compose.rag-only.yml down -v
+
+  # Deploy to staging (on main branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          # Add actual deployment commands here
+          echo "Deployment completed successfully!"
