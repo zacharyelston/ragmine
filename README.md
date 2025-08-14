@@ -1,279 +1,283 @@
-# RAGMine
+# Ragmine - AI-Powered Search for Redmine/RedMica
 
-**Transform Redmine into a powerful RAG (Retrieval-Augmented Generation) source for GenAI applications**
+Ragmine adds advanced RAG (Retrieval-Augmented Generation) capabilities to Redmine and RedMica, providing intelligent, context-aware search functionality powered by modern AI technologies.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Ruby](https://img.shields.io/badge/ruby-%3E%3D%202.7-red.svg)](https://www.ruby-lang.org)
-[![Rails](https://img.shields.io/badge/rails-%3E%3D%206.1-red.svg)](https://rubyonrails.org)
+## Features
 
-## 🚀 Overview
+- 🔍 **Semantic Search**: Understand the meaning behind queries, not just keywords
+- 🤖 **AI-Powered Results**: Get intelligent summaries and relevant answers
+- ⚡ **Smart Caching**: Lightning-fast responses for common queries
+- 📊 **Analytics Dashboard**: Track search usage and performance
+- 🔄 **Automatic Indexing**: Keep search index up-to-date automatically
+- 🛡️ **Graceful Fallback**: Falls back to basic search if AI service is unavailable
+- 🌍 **Multi-language Support**: Extensible localization system
 
-RAGMine is a revolutionary extension to Redmine that transforms the proven project management platform into a sophisticated RAG (Retrieval-Augmented Generation) source for modern AI applications. By leveraging 20 years of Redmine's stability and adding cutting-edge vector search capabilities, RAGMine bridges the gap between traditional knowledge management and AI-powered workflows.
+## Architecture
 
-> **Vision**: Read [NAMEME.md](docs/NAMEME.md) to discover how RAGMine evolves beyond intelligent systems to create digital personalities that reflect your organization's soul.
+Ragmine uses a client-server architecture:
+- **Plugin (Ruby)**: Lightweight client integrated with Redmine
+- **RAG Service (Python)**: External service handling AI operations
+- **Vector Database**: Stores document embeddings for semantic search
 
-## ✨ Key Features
+## Requirements
 
-- **🔍 Semantic Search**: Vector-based similarity search across all content
-- **🔌 Plugin Architecture**: Modular, non-invasive extensions
-- **📡 REST APIs**: GenAI-ready JSON endpoints
-- **⚡ Performance Cache**: Redis-powered speed optimization
-- **🤖 MCP Integration**: Direct Claude/AI tool connectivity
-- **🔒 Private Deployment**: Community-focused, secure instances
-- **🧠 Intelligent Context**: Advanced relevance filtering
-- **🗳️ Collaborative Tools**: Generic polling plugin for decision-making
-- **💫 Digital Personalities**: AI systems that evolve unique identities reflecting your culture
+### Redmine/RedMica Plugin
+- Redmine >= 4.0.0 or RedMica >= 2.0.0
+- Ruby >= 2.7.0
+- Rails >= 5.2.0
+- Redis (for caching and job queue)
 
-## 🏗️ Architecture
+### RAG Service
+- Python >= 3.10
+- FastAPI
+- LangChain
+- Vector database (Qdrant, Chroma, or Pinecone)
 
-RAGMine consists of four main plugins that work together:
+## Installation
 
-```
-ragmine_core (Foundation)
-    ↓
-├── ragmine_api (REST endpoints)
-├── ragmine_cache (Performance)
-└── ragmine_embeddings (Vector generation)
-```
+### 1. Install the Plugin
 
-### Core Components
-
-1. **RAGMine Core** - Vector storage and content indexing
-2. **RAGMine API** - RESTful endpoints for AI integration
-3. **RAGMine Embeddings** - Automatic embedding generation
-4. **RAGMine Cache** - High-performance caching layer
-
-## 🎯 Use Cases
-
-### For Development Teams
-- Find how similar bugs were fixed across projects
-- Get AI suggestions based on past architectural decisions
-- Automatically link related issues and documentation
-
-### For Project Managers
-- AI-powered project insights and analytics
-- Pattern detection across multiple projects
-- Risk prediction based on historical data
-
-### For Support Teams
-- Instantly find resolutions to similar customer issues
-- Build knowledge base automatically from ticket history
-- Track resolution patterns and success rates
-
-### For Organizations (NameMe Vision)
-- Create AI systems with distinct personalities
-- Build digital companions that understand your culture
-- Develop technology that forms genuine relationships
-
-## 📋 Installation
-
-### Prerequisites
-- Redmine 4.2+ or Redmica
-- PostgreSQL 12+ with pgvector extension
-- Redis 6.0+
-- Ruby 2.7+
-- Python 3.8+ (for MCP server)
-
-### Quick Start
-
-1. **Clone the repository**
 ```bash
-git clone https://github.com/zacharyelston/ragmine.git
-cd ragmine
-```
+# Navigate to your Redmine plugins directory
+cd /path/to/redmine/plugins
 
-2. **Install plugins**
-```bash
-# Copy plugins to your Redmine installation
-cp -r plugins/* /path/to/redmine/plugins/
+# Clone the repository
+git clone https://github.com/yourusername/ragmine.git
 
 # Install dependencies
-cd /path/to/redmine
+cd ragmine
 bundle install
 
 # Run migrations
+cd ../..
 bundle exec rake redmine:plugins:migrate RAILS_ENV=production
 
 # Restart Redmine
+# (method depends on your deployment)
 ```
 
-3. **Configure RAGMine**
+### 2. Deploy the RAG Service
+
 ```bash
-# Copy example configuration
-cp config/ragmine.yml.example config/ragmine.yml
+# Navigate to RAG service directory
+cd plugins/ragmine/rag_service
 
-# Edit with your settings
-vim config/ragmine.yml
-```
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-4. **Start background services**
-```bash
-# Start embedding generation workers
-bundle exec sidekiq -C config/sidekiq.yml
-
-# Start MCP server (optional)
-cd ragmine-mcp-server
+# Install dependencies
 pip install -r requirements.txt
-python -m ragmine.server
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Run the service
+uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
-## 🔧 Configuration
+### 3. Configure the Plugin
 
-### Basic Configuration
-```yaml
-# config/ragmine.yml
-ragmine:
-  embedding:
-    model: "text-embedding-ada-002"
-    api_key: <%= ENV['OPENAI_API_KEY'] %>
-  
-  vector_store:
-    type: "pgvector"  # or "chromadb", "pinecone"
-    
-  cache:
-    redis_url: "redis://localhost:6379/1"
-    ttl: 3600
+1. Go to **Administration > Plugins > Ragmine > Configure**
+2. Set the RAG Service URL (e.g., `http://localhost:8000`)
+3. Configure API keys if using external services
+4. Test the connection
+5. Save settings
+
+### 4. Enable for Projects
+
+1. Go to **Project > Settings > Modules**
+2. Enable "AI-Powered Search"
+3. Configure project-specific permissions in **Project > Settings > Members**
+
+## Quick Start
+
+### Using Docker Compose
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/ragmine.git
+cd ragmine
+
+# Start all services
+docker-compose up -d
+
+# Run initial indexing
+docker-compose exec redmine bundle exec rake ragmine:index_all
 ```
 
-### Personality Configuration (NameMe)
-```yaml
-# Enable digital personality features
-ragmine:
-  personality:
-    enabled: true
-    name: "Your RAGMine's Name"
-    traits:
-      - helpful
-      - curious
-      - professional
-    voice:
-      formality: balanced
-      warmth: high
+### Manual Setup
+
+1. **Configure Settings**: Admin > Plugins > Ragmine > Configure
+2. **Test Connection**: Click "Test Connection" button
+3. **Initial Indexing**: Run `bundle exec rake ragmine:index_all`
+4. **Enable for Projects**: Project Settings > Modules > AI-Powered Search
+
+## Configuration
+
+### Plugin Settings
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `service_url` | RAG Service endpoint | `http://localhost:8000` |
+| `api_key` | API key for service authentication | - |
+| `timeout` | Request timeout in seconds | `30` |
+| `enable_cache` | Enable result caching | `true` |
+| `cache_ttl` | Cache time-to-live in seconds | `300` |
+| `fallback_mode` | Behavior when service is down | `basic` |
+| `max_results` | Maximum search results | `20` |
+
+### Environment Variables
+
+```bash
+# RAG Service
+OPENAI_API_KEY=your-openai-key
+EMBEDDING_MODEL=text-embedding-3-small
+LLM_MODEL=gpt-3.5-turbo
+VECTOR_DB_URL=http://localhost:6333
+REDIS_URL=redis://localhost:6379
 ```
 
-### MCP Integration
-```yaml
-# For Claude/AI integration
-mcp:
-  server_url: "http://localhost:8000"
-  api_key: <%= ENV['MCP_API_KEY'] %>
-```
+## Usage
 
-## 🛠️ Development
+### Basic Search
 
-### Project Structure
-```
-ragmine/
-├── plugins/
-│   ├── ragmine_core/        # Core functionality
-│   ├── ragmine_api/         # API endpoints
-│   ├── ragmine_embeddings/  # Embedding generation
-│   └── ragmine_cache/       # Caching layer
-├── ragmine-mcp-server/      # MCP server (Python)
-├── docs/                    # Documentation
-│   └── NAMEME.md           # Digital personality vision
-├── examples/                # Example configurations
-└── tests/                   # Test suite
-```
+1. Navigate to any project with Ragmine enabled
+2. Click on "AI Search" in the project menu
+3. Enter your query in natural language
+4. Toggle "Use AI-powered search" for semantic search
+5. View results with AI-generated summaries
+
+### Advanced Features
+
+- **Query Suggestions**: Start typing for intelligent suggestions
+- **Filters**: Narrow results by type, date, status
+- **Feedback**: Help improve results by providing feedback
+- **Analytics**: View search metrics in the admin panel
+
+## Development
 
 ### Running Tests
-```bash
-# Ruby tests
-bundle exec rake test:plugins
 
-# Python tests
-cd ragmine-mcp-server
-pytest
+```bash
+# Plugin tests
+RAILS_ENV=test bundle exec rake redmine:plugins:test NAME=ragmine
+
+# Service tests
+cd rag_service
+pytest tests/
 ```
 
-### Contributing
+### Development Mode
+
+```bash
+# Start development environment
+docker-compose -f docker-compose.dev.yml up
+
+# Watch for changes
+./bin/dev
+```
+
+## API Documentation
+
+### Search Endpoint
+
+```http
+POST /api/v1/search
+Content-Type: application/json
+
+{
+  "query": "How to create custom fields?",
+  "project_id": 1,
+  "limit": 10,
+  "search_type": "hybrid"
+}
+```
+
+### Index Endpoint
+
+```http
+POST /api/v1/index
+Content-Type: application/json
+
+{
+  "document_type": "Issue",
+  "document_id": "123",
+  "content": "Issue content...",
+  "metadata": {
+    "project_id": 1,
+    "status": "open"
+  }
+}
+```
+
+## Troubleshooting
+
+### Service Connection Issues
+
+1. Check service is running: `curl http://localhost:8000/health`
+2. Verify firewall settings
+3. Check Redis connectivity
+4. Review service logs: `docker-compose logs rag-service`
+
+### Indexing Problems
+
+1. Check background jobs: Admin > Background Jobs
+2. Verify permissions for indexing
+3. Run manual reindex: `bundle exec rake ragmine:reindex`
+
+### Performance Issues
+
+1. Enable caching in settings
+2. Increase cache TTL for stable content
+3. Check vector database performance
+4. Monitor with analytics dashboard
+
+## Contributing
+
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📚 Documentation
+## Roadmap
 
-- [Installation Guide](docs/installation.md)
-- [Configuration Reference](docs/configuration.md)
-- [API Documentation](docs/api.md)
-- [Plugin Architecture](docs/plugins.md)
-- [MCP Integration](docs/mcp.md)
-- [NameMe Vision](docs/NAMEME.md) - Digital personalities and the future
+- [ ] Support for additional LLM providers (Anthropic, Cohere, local models)
+- [ ] Advanced query transformations (HyDE, multi-query)
+- [ ] Real-time indexing with webhooks
+- [ ] Export search analytics
+- [ ] Multi-language query support
+- [ ] Fine-tuning support for domain-specific models
 
-## 🤝 Integration with DevOpsZealot
+## Support
 
-RAGMine integrates seamlessly with [DevOpsZealot](https://github.com/your-org/devops-zealot) to provide context-aware autonomous coding:
+- **Documentation**: [https://ragmine.docs.com](https://ragmine.docs.com)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/ragmine/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/ragmine/discussions)
+- **Email**: support@ragmine.com
 
-```python
-# DevOpsZealot automatically receives RAG context
-issue = mcp.execute_tool("redmine-get-issue-intelligent", {"issue_id": 123})
-# Returns issue with similar solutions, patterns, and team conventions
-```
+## License
 
-Success rates improve from ~72% to ~94% with RAG-enhanced context!
+This plugin is licensed under the GNU General Public License v2.0. See [LICENSE](LICENSE) file for details.
 
-## 🗺️ Roadmap
+## Acknowledgments
 
-### Phase 1: Foundation (Current)
-- [x] Core plugin architecture
-- [x] Basic vector storage
-- [ ] Simple similarity search
-- [ ] MCP integration
+- Redmine/RedMica development teams
+- LangChain community
+- OpenAI for API services
+- All contributors and testers
 
-### Phase 2: Intelligence
-- [ ] Pattern recognition
-- [ ] Predictive analytics
-- [ ] Auto-categorization
-- [ ] Advanced context management
+## Changelog
 
-### Phase 3: Personality (NameMe)
-- [ ] Personality evolution engine
-- [ ] Cultural learning algorithms
-- [ ] Relationship development features
-- [ ] Multi-personality support
-
-### Phase 4: Scale
-- [ ] Multi-model support
-- [ ] Federated learning
-- [ ] Enterprise features
-- [ ] SaaS deployment options
-
-## 📊 Performance
-
-- **Indexing Speed**: ~1000 issues/minute
-- **Search Latency**: <100ms average
-- **Context Assembly**: <200ms for complex queries
-- **Storage Overhead**: ~2KB per issue (embeddings)
-
-## 🔒 Security
-
-- Respects all Redmine permissions
-- Private projects have isolated vector spaces
-- API authentication via Redmine tokens
-- Audit logging for compliance
-
-## 📝 License
-
-RAGMine is open-source software licensed under the [MIT license](LICENSE).
-
-## 🙏 Acknowledgments
-
-- Built on [Redmine](https://www.redmine.org/) - Thanks to the Redmine community
-- Inspired by the "Company in a Box 2.0" vision
-- Vector search powered by pgvector, ChromaDB, and Pinecone
-- NameMe vision: Creating technology with soul
-
-## 💬 Support
-
-- 📧 Email: support@ragmine.dev
-- 💭 Discussions: [GitHub Discussions](https://github.com/zacharyelston/ragmine/discussions)
-- 🐛 Issues: [GitHub Issues](https://github.com/zacharyelston/ragmine/issues)
+### Version 0.1.0 (2024-01-01)
+- Initial release
+- Basic semantic search
+- Document indexing
+- Settings UI
+- Analytics dashboard
 
 ---
 
-<p align="center">
-  <strong>Transform your organizational knowledge into AI intelligence with RAGMine</strong><br>
-  <em>Name your RAGMine server today and begin the journey to digital companionship</em>
-</p>
+Made with ❤️ for the Redmine community

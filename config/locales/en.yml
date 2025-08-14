@@ -1,0 +1,101 @@
+en:
+  # Plugin name and description
+  label_ragmine: "AI Search"
+  label_ragmine_search: "AI Search"
+  label_ragmine_global_search: "AI Search"
+  label_ragmine_admin: "AI Search Settings"
+  
+  # Project module
+  project_module_ragmine: "AI-Powered Search"
+  
+  # Permissions
+  permission_use_rag_search: "Use AI-powered search"
+  permission_manage_rag_settings: "Manage AI search settings"
+  permission_view_rag_analytics: "View AI search analytics"
+  
+  # Settings
+  ragmine_settings_service_url: "RAG Service URL"
+  ragmine_settings_api_key: "API Key"
+  ragmine_settings_timeout: "Request Timeout (seconds)"
+  ragmine_settings_enable_cache: "Enable Result Caching"
+  ragmine_settings_cache_ttl: "Cache TTL (seconds)"
+  ragmine_settings_fallback_mode: "Fallback Mode"
+  ragmine_settings_max_results: "Maximum Results"
+  ragmine_settings_enable_analytics: "Enable Analytics"
+  ragmine_settings_index_batch_size: "Indexing Batch Size"
+  
+  # Search interface
+  ragmine_search_placeholder: "Ask a question or search..."
+  ragmine_search_button: "Search"
+  ragmine_search_use_ai: "Use AI-powered search"
+  ragmine_search_filters: "Filters"
+  ragmine_search_no_results: "No results found"
+  ragmine_search_error: "An error occurred during search"
+  ragmine_search_fallback_notice: "AI search is unavailable. Showing basic search results."
+  
+  # Search options
+  ragmine_search_type_semantic: "Semantic"
+  ragmine_search_type_keyword: "Keyword"
+  ragmine_search_type_hybrid: "Hybrid"
+  
+  # Results
+  ragmine_result_relevance: "Relevance"
+  ragmine_result_ai_summary: "AI Summary"
+  ragmine_result_source: "Source"
+  ragmine_result_updated: "Updated"
+  
+  # Admin interface
+  ragmine_admin_test_connection: "Test Connection"
+  ragmine_admin_connection_success: "Connection successful!"
+  ragmine_admin_connection_failed: "Connection failed: %{error}"
+  ragmine_admin_reindex: "Reindex All Documents"
+  ragmine_admin_clear_index: "Clear Index"
+  ragmine_admin_indexing_status: "Indexing Status"
+  ragmine_admin_documents_indexed: "Documents Indexed"
+  ragmine_admin_last_indexed: "Last Indexed"
+  
+  # Analytics
+  ragmine_analytics_dashboard: "Analytics Dashboard"
+  ragmine_analytics_total_searches: "Total Searches"
+  ragmine_analytics_average_response_time: "Avg Response Time"
+  ragmine_analytics_cache_hit_rate: "Cache Hit Rate"
+  ragmine_analytics_top_queries: "Top Queries"
+  ragmine_analytics_search_volume: "Search Volume"
+  ragmine_analytics_performance_metrics: "Performance Metrics"
+  
+  # Messages
+  notice_ragmine_settings_updated: "AI Search settings have been updated"
+  notice_ragmine_reindex_started: "Document reindexing has been started"
+  notice_ragmine_index_cleared: "Search index has been cleared"
+  notice_ragmine_feedback_saved: "Thank you for your feedback"
+  
+  warning_ragmine_service_unavailable: "AI search service is currently unavailable"
+  warning_ragmine_fallback_active: "Using basic search due to service issues"
+  
+  error_ragmine_configuration: "AI Search configuration error: %{error}"
+  error_ragmine_indexing_failed: "Failed to index document: %{error}"
+  error_ragmine_search_failed: "Search failed: %{error}"
+  
+  # Tooltips
+  tooltip_ragmine_relevance_score: "AI-calculated relevance score"
+  tooltip_ragmine_use_ai_search: "Enable semantic understanding and AI-powered results"
+  tooltip_ragmine_cache_enabled: "Results are cached for %{minutes} minutes"
+  
+  # Labels for different content types
+  label_ragmine_type_issue: "Issue"
+  label_ragmine_type_wiki: "Wiki Page"
+  label_ragmine_type_document: "Document"
+  label_ragmine_type_forum: "Forum Post"
+  label_ragmine_type_news: "News"
+  
+  # Feedback
+  ragmine_feedback_helpful: "Was this result helpful?"
+  ragmine_feedback_yes: "Yes"
+  ragmine_feedback_no: "No"
+  ragmine_feedback_improve: "How can we improve?"
+  
+  # Status messages
+  ragmine_status_indexing: "Indexing in progress..."
+  ragmine_status_ready: "Ready"
+  ragmine_status_error: "Error"
+  ragmine_status_degraded: "Degraded"

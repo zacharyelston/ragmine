@@ -1,0 +1,518 @@
+# Ragmine - RAG Plugin for Redmine/RedMica
+# Development Plan and Project Specification
+# Version: 1.0.0
+# Last Updated: 2024
+
+project:
+  name: Ragmine
+  description: "Retrieval-Augmented Generation (RAG) plugin for Redmine/RedMica that adds AI-powered search and knowledge management capabilities"
+  version: 0.1.0
+  repository: https://github.com/yourusername/ragmine
+  license: MIT
+  compatibility:
+    - redmine: ">=4.0.0"
+    - redmica: ">=2.0.0"
+    - ruby: ">=2.7.0"
+    - rails: ">=5.2.0"
+
+architecture:
+  overview: |
+    Ragmine uses a client-server architecture where the Redmine plugin acts as a thin client
+    that communicates with external RAG services for heavy processing. This keeps Redmine
+    lightweight while providing powerful AI capabilities.
+  
+  components:
+    plugin:
+      description: "Redmine/RedMica plugin (Ruby/Rails)"
+      responsibilities:
+        - User interface
+        - Permission management
+        - API client for external services
+        - Response caching
+        - Fallback to basic search
+    
+    rag_service:
+      description: "External RAG processing service (Python/FastAPI)"
+      responsibilities:
+        - Document embedding
+        - Vector storage and retrieval
+        - LLM interactions
+        - Query transformation
+        - Re-ranking
+    
+    infrastructure:
+      description: "Supporting services"
+      components:
+        - redis: "Cache and job queue"
+        - postgresql: "Metadata storage"
+        - vector_db: "Qdrant/Chroma for embeddings"
+
+phases:
+  - phase: 1
+    name: "Foundation & Setup"
+    duration: "1 week"
+    tasks:
+      - task: "Generate plugin skeleton"
+        subtasks:
+          - Generate Redmine plugin structure
+          - Setup Git repository
+          - Configure development environment
+          - Create initial documentation
+        
+      - task: "Setup external service skeleton"
+        subtasks:
+          - Create Python FastAPI project
+          - Setup Docker configuration
+          - Create basic health check endpoint
+          - Configure development environment
+      
+      - task: "Development environment"
+        subtasks:
+          - Docker Compose setup for local development
+          - Environment variable configuration
+          - Development database setup
+          - Testing framework setup
+
+  - phase: 2
+    name: "Basic Integration"
+    duration: "2 weeks"
+    tasks:
+      - task: "Service client implementation"
+        subtasks:
+          - Create HTTP client wrapper
+          - Implement retry logic
+          - Add connection pooling
+          - Create fallback mechanism
+        files:
+          - lib/ragmine/service_client.rb
+          - lib/ragmine/configuration.rb
+          - lib/ragmine/errors.rb
+      
+      - task: "Plugin configuration"
+        subtasks:
+          - Create settings UI
+          - Add configuration validation
+          - Implement connection testing
+          - Setup API key management
+        files:
+          - app/views/settings/_ragmine_settings.html.erb
+          - app/controllers/ragmine_admin_controller.rb
+          - config/settings.yml
+      
+      - task: "Basic search UI"
+        subtasks:
+          - Create search interface
+          - Add to project menu
+          - Implement result display
+          - Add loading states
+        files:
+          - app/controllers/ragmine_search_controller.rb
+          - app/views/ragmine_search/index.html.erb
+          - assets/stylesheets/ragmine.css
+          - assets/javascripts/ragmine.js
+
+  - phase: 3
+    name: "Document Indexing"
+    duration: "2 weeks"
+    tasks:
+      - task: "Indexing models"
+        subtasks:
+          - Create RagDocument model
+          - Create RagQuery model
+          - Setup database migrations
+          - Add model validations
+        files:
+          - app/models/rag_document.rb
+          - app/models/rag_query.rb
+          - db/migrate/001_create_ragmine_tables.rb
+      
+      - task: "Indexing jobs"
+        subtasks:
+          - Create indexing job
+          - Implement batch indexing
+          - Add retry logic
+          - Create job monitoring
+        files:
+          - app/jobs/ragmine_indexing_job.rb
+          - app/jobs/ragmine_batch_indexing_job.rb
+          - lib/ragmine/indexer.rb
+      
+      - task: "Hooks and patches"
+        subtasks:
+          - Hook into issue save/update
+          - Hook into wiki page save/update
+          - Hook into document upload
+          - Create model patches
+        files:
+          - lib/ragmine/hooks.rb
+          - lib/ragmine/patches/issue_patch.rb
+          - lib/ragmine/patches/wiki_page_patch.rb
+
+  - phase: 4
+    name: "Search Implementation"
+    duration: "2 weeks"
+    tasks:
+      - task: "Basic search"
+        subtasks:
+          - Implement keyword search
+          - Add result formatting
+          - Create snippet extraction
+          - Add highlighting
+        files:
+          - lib/ragmine/search/basic_search.rb
+          - lib/ragmine/search/result_formatter.rb
+      
+      - task: "Semantic search"
+        subtasks:
+          - Implement vector search API calls
+          - Add relevance scoring
+          - Create result merging
+          - Add caching layer
+        files:
+          - lib/ragmine/search/semantic_search.rb
+          - lib/ragmine/search/cache_service.rb
+      
+      - task: "Search UI enhancements"
+        subtasks:
+          - Add autocomplete
+          - Implement filters
+          - Add search history
+          - Create saved searches
+        files:
+          - app/views/ragmine_search/_filters.html.erb
+          - app/views/ragmine_search/_results.html.erb
+          - assets/javascripts/ragmine_autocomplete.js
+
+  - phase: 5
+    name: "RAG Service Core"
+    duration: "3 weeks"
+    tasks:
+      - task: "Service setup"
+        subtasks:
+          - Setup FastAPI application
+          - Configure LangChain
+          - Setup vector database
+          - Create API documentation
+        files:
+          - rag_service/app.py
+          - rag_service/config.py
+          - rag_service/requirements.txt
+      
+      - task: "Embedding pipeline"
+        subtasks:
+          - Implement text splitting
+          - Setup embedding models
+          - Create vector storage
+          - Add metadata handling
+        files:
+          - rag_service/pipeline/embedder.py
+          - rag_service/pipeline/text_splitter.py
+          - rag_service/pipeline/vector_store.py
+      
+      - task: "Search endpoints"
+        subtasks:
+          - Create search endpoint
+          - Implement query transformation
+          - Add re-ranking
+          - Create response formatting
+        files:
+          - rag_service/api/search.py
+          - rag_service/api/index.py
+          - rag_service/api/health.py
+
+  - phase: 6
+    name: "Advanced Features"
+    duration: "2 weeks"
+    tasks:
+      - task: "Query transformation"
+        subtasks:
+          - Implement multi-query
+          - Add HyDE
+          - Create query expansion
+          - Add step-back prompting
+        files:
+          - rag_service/transformers/multi_query.py
+          - rag_service/transformers/hyde.py
+          - rag_service/transformers/query_expansion.py
+      
+      - task: "Intelligent routing"
+        subtasks:
+          - Create query classifier
+          - Implement routing logic
+          - Add complexity analysis
+          - Create cost optimizer
+        files:
+          - lib/ragmine/router.rb
+          - rag_service/routing/classifier.py
+      
+      - task: "Analytics"
+        subtasks:
+          - Create usage tracking
+          - Add performance metrics
+          - Implement feedback collection
+          - Create reporting dashboard
+        files:
+          - app/models/rag_analytics.rb
+          - app/views/ragmine_analytics/dashboard.html.erb
+
+  - phase: 7
+    name: "Performance & Optimization"
+    duration: "1 week"
+    tasks:
+      - task: "Caching optimization"
+        subtasks:
+          - Implement multi-level caching
+          - Add cache warming
+          - Create cache invalidation
+          - Add cache metrics
+      
+      - task: "Performance tuning"
+        subtasks:
+          - Optimize database queries
+          - Add connection pooling
+          - Implement lazy loading
+          - Add request batching
+      
+      - task: "Monitoring"
+        subtasks:
+          - Add health checks
+          - Create performance alerts
+          - Implement error tracking
+          - Add usage dashboards
+
+  - phase: 8
+    name: "Testing & Documentation"
+    duration: "1 week"
+    tasks:
+      - task: "Testing"
+        subtasks:
+          - Write unit tests
+          - Create integration tests
+          - Add performance tests
+          - Setup CI/CD pipeline
+        files:
+          - test/unit/rag_document_test.rb
+          - test/functional/ragmine_search_controller_test.rb
+          - test/integration/ragmine_integration_test.rb
+      
+      - task: "Documentation"
+        subtasks:
+          - Write user documentation
+          - Create admin guide
+          - Add API documentation
+          - Create troubleshooting guide
+        files:
+          - README.md
+          - docs/installation.md
+          - docs/configuration.md
+          - docs/api.md
+
+  - phase: 9
+    name: "Deployment & Release"
+    duration: "1 week"
+    tasks:
+      - task: "Deployment preparation"
+        subtasks:
+          - Create deployment scripts
+          - Setup Docker images
+          - Configure Kubernetes manifests
+          - Create backup procedures
+      
+      - task: "Release"
+        subtasks:
+          - Create release package
+          - Write release notes
+          - Update documentation
+          - Publish to plugin directory
+
+file_structure:
+  plugin:
+    root: /Users/zacelston/AlZacAI/ragmine
+    structure:
+      - app/
+        - controllers/
+          - ragmine_search_controller.rb
+          - ragmine_admin_controller.rb
+        - models/
+          - rag_document.rb
+          - rag_query.rb
+          - rag_analytics.rb
+        - views/
+          - ragmine_search/
+            - index.html.erb
+            - _results.html.erb
+            - _filters.html.erb
+          - ragmine_admin/
+            - index.html.erb
+          - settings/
+            - _ragmine_settings.html.erb
+        - jobs/
+          - ragmine_indexing_job.rb
+          - ragmine_batch_indexing_job.rb
+      - assets/
+        - stylesheets/
+          - ragmine.css
+        - javascripts/
+          - ragmine.js
+          - ragmine_autocomplete.js
+      - config/
+        - locales/
+          - en.yml
+        - routes.rb
+        - settings.yml
+      - db/
+        - migrate/
+          - 001_create_ragmine_tables.rb
+      - lib/
+        - ragmine/
+          - service_client.rb
+          - configuration.rb
+          - errors.rb
+          - indexer.rb
+          - router.rb
+          - hooks.rb
+          - patches/
+            - issue_patch.rb
+            - wiki_page_patch.rb
+          - search/
+            - basic_search.rb
+            - semantic_search.rb
+            - cache_service.rb
+            - result_formatter.rb
+        - tasks/
+          - ragmine.rake
+      - test/
+        - unit/
+        - functional/
+        - integration/
+        - fixtures/
+        - test_helper.rb
+      - init.rb
+      - README.md
+      - LICENSE
+      - Gemfile
+
+  service:
+    root: /Users/zacelston/AlZacAI/ragmine/rag_service
+    structure:
+      - api/
+        - __init__.py
+        - health.py
+        - search.py
+        - index.py
+        - suggestions.py
+      - pipeline/
+        - __init__.py
+        - embedder.py
+        - text_splitter.py
+        - vector_store.py
+      - transformers/
+        - __init__.py
+        - multi_query.py
+        - hyde.py
+        - query_expansion.py
+      - routing/
+        - __init__.py
+        - classifier.py
+      - models/
+        - __init__.py
+        - schemas.py
+      - config.py
+      - app.py
+      - requirements.txt
+      - Dockerfile
+      - .env.example
+
+development:
+  environment:
+    ruby_version: "2.7.8"
+    rails_version: "5.2.8"
+    python_version: "3.10"
+    node_version: "18.x"
+  
+  dependencies:
+    ruby_gems:
+      - httparty: "~> 0.21"
+      - redis: "~> 5.0"
+      - sidekiq: "~> 7.0"
+    
+    python_packages:
+      - fastapi: "~> 0.104"
+      - langchain: "~> 0.1"
+      - openai: "~> 1.0"
+      - qdrant-client: "~> 1.7"
+      - redis: "~> 5.0"
+      - pydantic: "~> 2.0"
+  
+  tools:
+    - docker: ">=20.10"
+    - docker-compose: ">=2.0"
+    - git: ">=2.0"
+    - make: "GNU Make"
+
+commands:
+  setup: |
+    # Clone repository
+    git clone <repository-url> ragmine
+    cd ragmine
+    
+    # Install dependencies
+    bundle install
+    cd rag_service && pip install -r requirements.txt
+    
+    # Setup development environment
+    docker-compose up -d
+    bundle exec rake redmine:plugins:migrate
+  
+  test: |
+    # Run plugin tests
+    RAILS_ENV=test bundle exec rake redmine:plugins:test NAME=ragmine
+    
+    # Run service tests
+    cd rag_service && pytest
+  
+  deploy: |
+    # Build Docker images
+    docker build -t ragmine/plugin .
+    docker build -t ragmine/service ./rag_service
+    
+    # Deploy to Kubernetes
+    kubectl apply -f k8s/
+
+milestones:
+  - milestone: "Alpha Release"
+    date: "Week 4"
+    features:
+      - Basic search functionality
+      - Document indexing
+      - Settings UI
+  
+  - milestone: "Beta Release"
+    date: "Week 8"
+    features:
+      - Semantic search
+      - Query transformation
+      - Analytics dashboard
+  
+  - milestone: "1.0 Release"
+    date: "Week 10"
+    features:
+      - Full RAG pipeline
+      - Performance optimization
+      - Complete documentation
+
+risks:
+  - risk: "External service dependency"
+    mitigation: "Implement robust fallback to basic search"
+  
+  - risk: "Performance impact on Redmine"
+    mitigation: "Use async processing and caching"
+  
+  - risk: "API costs"
+    mitigation: "Support local models and cost optimization"
+
+success_metrics:
+  - Search latency < 2 seconds
+  - 90% cache hit rate for common queries
+  - Zero impact on Redmine core performance
+  - 95% service availability

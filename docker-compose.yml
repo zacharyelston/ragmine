@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Redis for caching and job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL for Redmine (optional if using existing)
+  # postgres:
+  #   image: postgres:14
+  #   environment:
+  #     POSTGRES_DB: redmine
+  #     POSTGRES_USER: redmine
+  #     POSTGRES_PASSWORD: redmine_password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  # Qdrant vector database
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RAG Service
+  rag-service:
+    build:
+      context: ./rag_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - QDRANT_URL=http://qdrant:6333
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+      - LLM_MODEL=${LLM_MODEL:-gpt-3.5-turbo}
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    volumes:
+      - ./rag_service:/app
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Sidekiq worker for background jobs
+  sidekiq:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidekiq
+    environment:
+      - RAILS_ENV=${RAILS_ENV:-development}
+      - REDIS_URL=redis://redis:6379/0
+      - RAG_SERVICE_URL=http://rag-service:8000
+    depends_on:
+      - redis
+      - rag-service
+    volumes:
+      - .:/app
+    command: bundle exec sidekiq -C config/sidekiq.yml
+
+  # Optional: Adminer for database management
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    profiles:
+      - debug
+
+  # Optional: RedisInsight for Redis management
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - redis_insight_data:/db
+    profiles:
+      - debug
+
+volumes:
+  redis_data:
+  postgres_data:
+  qdrant_data:
+  redis_insight_data:
+
+networks:
+  default:
+    name: ragmine_network
